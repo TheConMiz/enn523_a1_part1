@@ -6,11 +6,13 @@
               on 23 February 2018
               in Brisbane
 */
+
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include<stdio.h>
 #include<stdlib.h>
 /*#include <windows.h> 
 */
+
 #include<winsock2.h>
 #include <windows.h>    /* Note: winsock2.h has included windows.h */
 #include "tcpserverclient.h"
