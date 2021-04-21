@@ -6,9 +6,12 @@
 #include <time.h>
 #include <string>
 #include <chrono>
-
+#include <iomanip>
 #define PORT 54000
 #define LOOPBACK "127.0.0.1"
+
+// To deal with deprecation warnings
+#pragma warning(disable : 4996)
 
 using namespace std;
 
@@ -28,7 +31,6 @@ void sendMessage(SOCKET socketFile, const char* message, int sequenceNum, const 
 		cout << "Unable to send message. Error: " << WSAGetLastError() << endl;
 	}
 
-
 }
 
 // Combines the receipt of message from the client and error-checking
@@ -44,6 +46,48 @@ void receiveMessage(SOCKET socketFile, char* message, sockaddr *from, int *froml
 	}
 }
 
+// Struct that is destroyed upon each iteration of R being sent. Provides Round Trip Delay upon destruction.
+struct RoundTripTimer {
+
+	std::chrono::time_point<std::chrono::steady_clock> start, end;
+
+	std::chrono::duration<float> duration; 
+
+	RoundTripTimer() {
+		
+		start = std::chrono::high_resolution_clock::now();
+	}
+
+	~RoundTripTimer() {
+
+		end = std::chrono::high_resolution_clock::now();
+		// Duration in seconds
+		duration = end - start;
+
+		float ms = duration.count() * 1000.0f;
+
+		cout << "Round Trip Time: " << ms << "ms" << endl;
+	}
+};
+
+// Returns a timestamp of format hh:mm:ss:ms
+string getTimestamp() {
+
+	const auto now = std::chrono::system_clock::now();
+
+	const auto rawTime = std::chrono::system_clock::to_time_t(now);
+	
+	// Need this to generate milliseconds value separately
+	const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+	
+	// Required for formatting time value as string
+	std::stringstream nowSs;
+	
+	nowSs << std::put_time(std::localtime(&rawTime), "%T") << ':' << std::setfill('0') << std::setw(3) << ms.count();
+	
+	return nowSs.str();
+}
+
 int main(int argc, char* argv[]) {
 
 	// Socket address variables for local and client.
@@ -54,7 +98,7 @@ int main(int argc, char* argv[]) {
 	// Buffer variable for incoming messages.
 	char buffer[BUFFERLENGTH];
 
-	time_t oldTime, newTime, timeDifference;
+	time_t oldTime, newTime;
 
 
 	// Commands
@@ -133,10 +177,13 @@ int main(int argc, char* argv[]) {
 		oldTime = time(NULL);
 
 		while (true) {
-			
+
 			newTime = time(NULL);
 
 			if (newTime - oldTime == 3) {
+
+				// Provides round trip delay.
+				RoundTripTimer roundTripTimer;
 
 				++currentSeqNum;
 
@@ -145,11 +192,10 @@ int main(int argc, char* argv[]) {
 				// Wait for a message. 
 				receiveMessage(socketFile, buffer, (sockaddr*)&client, &clientLength);
 
-
 				// If received message is ACK R:
 				if (!strcmp(buffer, ackR)) {
-				
-					cout << buffer << " seqno " << newTime << endl;
+					
+					cout << buffer << " seqno " << getTimestamp() << endl;
 
 					// Send ACK.
 					sendMessage(socketFile, ack, currentSeqNum, (sockaddr*)&client, clientLength);
@@ -160,15 +206,17 @@ int main(int argc, char* argv[]) {
 
 				// If received message is ACK: 
 				if (!strcmp(buffer, ack)) {
+					
+					// Get Current Time
+					auto now = std::chrono::system_clock::now();
 
-					cout << buffer << " seqno " << newTime << endl;
+					cout << buffer << " seqno " << getTimestamp() << endl;
 
-					cout << "Calculating Round Trip Delay: " << endl;
+					cout << endl;
 				}
 
 				oldTime = newTime;
 			}
-
 		}
 	}
 
