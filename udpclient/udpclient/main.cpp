@@ -86,9 +86,11 @@ int main(int argc, char* argv[]) {
 	// Socket object named output
 	SOCKET socketFile = socket(AF_INET, SOCK_DGRAM, 0);
 
+	// This line is here to establish the connection between client and server by sending client info to the server. NEEDS TO BE REMOVED. 
+	sendMessage(socketFile, "test", BUFFERLENGTH, 0, (sockaddr*)&server, serverLength);
+
 	while (true) {
-		// This line is here to establish the connection between client and server by sending client info to the server. NEEDS TO BE REMOVED. 
-		sendMessage(socketFile, "test", BUFFERLENGTH, 0, (sockaddr*)&server, serverLength);
+
 
 		// THIS IS WHERE THE CODE SHOULD START. THE SERVER IP INFORMATION SHOULD BE OBTAINED ONCE THE SERVER MAKES CONTACT
 		receiveMessage(socketFile, buffer, 1024, 0, (sockaddr*)&server, &serverLength);
@@ -102,33 +104,33 @@ int main(int argc, char* argv[]) {
 		}
 
 		// If receive "ACK", respond with "ACK"
-		// if (!strcmp(buffer, ack)) {
+		if (!strcmp(buffer, ack)) {
 
-		// 	cout << buffer << "seqno" << " time" << endl;
+			cout << buffer << "seqno" << " time" << endl;
 
-		// 	// Send an ACK
-		// 	sendMessage(socketFile, ack, BUFFERLENGTH, 0, (sockaddr*)&server, serverLength);
+			// Send an ACK
+			sendMessage(socketFile, ack, BUFFERLENGTH, 0, (sockaddr*)&server, serverLength);
 
-		// }
+		}
 
-		// // If receive E, respond with ACK E
-		// if (!strcmp(buffer, e)) {
+		// If receive E, respond with ACK E
+		if (!strcmp(buffer, e)) {
 
-		// 	cout << buffer << "seqno" << " time" << endl;
+			cout << buffer << "seqno" << " time" << endl;
 			
-		// 	sendMessage(socketFile, ackE, BUFFERLENGTH, 0, (sockaddr*)&server, serverLength);
+			sendMessage(socketFile, ackE, BUFFERLENGTH, 0, (sockaddr*)&server, serverLength);
 
-		// 	// Wait for an Ack
-		// 	receiveMessage(socketFile, buffer, 1024, 0, (sockaddr*)&server, &serverLength);
+			// Wait for an Ack
+			receiveMessage(socketFile, buffer, 1024, 0, (sockaddr*)&server, &serverLength);
 
-		// 	// Upon receiving an ack, exit.
-		// 	if (!strcmp(buffer, ack)) {
+			// Upon receiving an ack, exit.
+			if (!strcmp(buffer, ack)) {
 
-		// 		cout << buffer << "seqno" << " time" << endl;
+				cout << buffer << "seqno" << " time" << endl;
 				
-		// 		exit(1);
-		// 	}
-		// }
+				exit(1);
+			}
+		}
 
 	}
 

@@ -12,37 +12,42 @@
 
 using namespace std;
 
-// Combines the sending of message to the client and error-checking
-void sendMessage(SOCKET socketFile, const char* messageType, int length, int flags, const sockaddr *to, int tolen) {
+// Global variables for memory allocation.
+const int BUFFERLENGTH = 1024;
+const int IP_LENGTH = 256;
 
-	int sendStatus = sendto(socketFile, messageType, length, flags, to, tolen);
+// Combines the sending of message to the client and error-checking
+void sendMessage(SOCKET socketFile, const char* message, int sequenceNum, const sockaddr *to, int tolen) {
+
+	// Do something here to send both message and sequence number
+
+	int sendStatus = sendto(socketFile, message, BUFFERLENGTH, 0, to, tolen);
 
 	// If unable to send, print error message.
 	if (sendStatus == SOCKET_ERROR) {
 		cout << "Unable to send message. Error: " << WSAGetLastError() << endl;
 	}
+
+
 }
 
 // Combines the receipt of message from the client and error-checking
-void receiveMessage(SOCKET socketFile, char* messageType, int length, int flags, sockaddr *from, int *fromlen) {
-	int messageIn = recvfrom(socketFile, messageType, length, flags, from, fromlen);
+void receiveMessage(SOCKET socketFile, char* message, sockaddr *from, int *fromlen) {
+
+	// Do something to collect the sequenceNum
+
+	int messageIn = recvfrom(socketFile, message, BUFFERLENGTH, 0, from, fromlen);
 
 	// If no message received, error.
 	if (messageIn == SOCKET_ERROR) {
 		cout << "Unable to receive from server. " << WSAGetLastError() << endl;
 	}
-	
 }
 
 int main(int argc, char* argv[]) {
 
-	// Variables for memory allocation.
-	const int BUFFERLENGTH = 1024;
-	const int IP_LENGTH = 256;
-
 	// Socket address variables for local and client.
 	sockaddr_in local, client;
-
 	int clientLength = sizeof(client);
 	ZeroMemory(&client, clientLength);
 
@@ -51,8 +56,6 @@ int main(int argc, char* argv[]) {
 
 	time_t oldTime, newTime, timeDifference;
 
-	// Variable for counting iteration in loop
-	int iterationStep;
 
 	// Commands
 	const char* ack = "ACK";
@@ -61,6 +64,9 @@ int main(int argc, char* argv[]) {
 	const char* e = "E";
 	const char* r = "R";
 
+	// Variable for sequence number
+	int currentSeqNum = 0;
+	int oldSeqNum = currentSeqNum;
 
 	cout << "UPD Server -- ACTIVE" << endl;
 
@@ -100,77 +106,68 @@ int main(int argc, char* argv[]) {
 
 	oldTime = time(NULL);
 
+	// ROUND 1 -  RECEIVE A MESSAGE FROM THE CLIENT TO ASCERTAIN ITS CREDENTIALS. REMOVE THIS LATER.
 	// Allocate space for buffer.
 	ZeroMemory(buffer, BUFFERLENGTH);
 
-	receiveMessage(socketFile, buffer, 1024, 0, (sockaddr*)&client, &clientLength);
+	// Wait for a message. Sending a sequence number of -1 here. ignore it.
+	receiveMessage(socketFile, buffer, (sockaddr*)&client, &clientLength);
 
 	// Allocate space for client's IP information.
 	char clientIp[IP_LENGTH];
 	ZeroMemory(clientIp, IP_LENGTH);
-
 	// Store IP information in clientIp variable
 	inet_ntop(AF_INET, &client.sin_addr, clientIp, IP_LENGTH);
 
+	// REMOVE LATER.
 	cout << "NOT PART OF PROJECT - Message from client " << clientIp << ": " << buffer << endl;
 	
+
+	// THIS IS WHERE THE CODE SHOULD START.
 	while (true) {
 
 		// Allocate space for buffer.
 		ZeroMemory(buffer, BUFFERLENGTH);
-
-
-		// THIS IS WHERE THE CODE SHOULD START. THE CLIENT IP INFORMATION SHOULD BE GATHERED FROM A HEADER FILE OR SOMETHING SIMILAR.
-					// Send "R" to client
 		
+		// Note the old time.
 		oldTime = time(NULL);
 
-		// PROBLEM - TIMING IS OFF EVERY NOW AND THEN. THE ACK R IS NOT RETURNED EVERY SINGLE TIME. 
 		while (true) {
 			
 			newTime = time(NULL);
 
 			if (newTime - oldTime == 3) {
-				sendMessage(socketFile, r, BUFFERLENGTH, 0, (sockaddr*)&client, clientLength);
+
+				++currentSeqNum;
+
+				sendMessage(socketFile, r, currentSeqNum, (sockaddr*)&client, clientLength);
 
 				// Wait for a message. 
-				receiveMessage(socketFile, buffer, BUFFERLENGTH, 0, (sockaddr*)&client, &clientLength);
+				receiveMessage(socketFile, buffer, (sockaddr*)&client, &clientLength);
 
 
-				// If received message is ACK R: 
+				// If received message is ACK R:
 				if (!strcmp(buffer, ackR)) {
 				
 					cout << buffer << " seqno " << newTime << endl;
 
-					// Send ACK
-					sendMessage(socketFile, ack, BUFFERLENGTH, 0, (sockaddr*)&client, clientLength);
+					// Send ACK.
+					sendMessage(socketFile, ack, currentSeqNum, (sockaddr*)&client, clientLength);
 
-					receiveMessage(socketFile, buffer, BUFFERLENGTH, 0, (sockaddr*)&client, &clientLength);
+					// Wait for a response. 
+					receiveMessage(socketFile, buffer, (sockaddr*)&client, &clientLength);
+				}
+
+				// If received message is ACK: 
+				if (!strcmp(buffer, ack)) {
+
+					cout << buffer << " seqno " << newTime << endl;
+
+					cout << "Calculating Round Trip Delay: " << endl;
 				}
 
 				oldTime = newTime;
 			}
-
-
-			
-			// If received message is ACK R: 
-			// if (!strcmp(buffer, ackR)) {
-				
-			// 	cout << buffer << " seqno " << newTime << endl;
-
-			// 	// Send ACK
-			// 	sendMessage(socketFile, ack, BUFFERLENGTH, 0, (sockaddr*)&client, clientLength);
-
-			// 	receiveMessage(socketFile, buffer, BUFFERLENGTH, 0, (sockaddr*)&client, &clientLength);
-			// }
-
-			// If received message is ACK: 
-			// if (!strcmp(buffer, ack)) {
-
-			// 	cout << buffer << " seqno " << newTime << endl;
-
-			// 	cout << "Calculating Round Trip Delay: " << endl;
-			// }
 
 		}
 	}
