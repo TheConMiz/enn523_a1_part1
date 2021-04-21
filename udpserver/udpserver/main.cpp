@@ -1,14 +1,26 @@
 // UDP SERVER
+
 #include <iostream>
+#include <string>
+
 #include <WS2tcpip.h>
 #include <WinSock2.h>
 #include <Windows.h>
-#include <time.h>
-#include <string>
+
+
 #include <chrono>
+#include <time.h>
+#include <thread>
 #include <iomanip>
+
+
 #define PORT 54000
 #define LOOPBACK "127.0.0.1"
+
+// ASCII Codes for keyboard input
+#define KEY_E 69
+#define KEY_e 101
+
 
 // To deal with deprecation warnings
 #pragma warning(disable : 4996)
@@ -18,6 +30,31 @@ using namespace std;
 // Global variables for memory allocation.
 const int BUFFERLENGTH = 1024;
 const int IP_LENGTH = 256;
+
+// Struct that is destroyed upon each iteration of R being sent. Provides Round Trip Delay upon destruction.
+struct RoundTripTimer {
+
+	std::chrono::time_point<std::chrono::steady_clock> start, end;
+
+	std::chrono::duration<float> duration;
+
+	RoundTripTimer() {
+
+		start = std::chrono::high_resolution_clock::now();
+	}
+
+	~RoundTripTimer() {
+
+		end = std::chrono::high_resolution_clock::now();
+		// Duration in seconds
+		duration = end - start;
+
+		// Duration in ms.
+		float ms = duration.count() * 1000.0f;
+
+		cout << "Round Trip Time: " << ms << "ms" << endl << endl;
+	}
+};
 
 // Combines the sending of message to the client and error-checking
 void sendMessage(SOCKET socketFile, const char* message, int sequenceNum, const sockaddr *to, int tolen) {
@@ -46,31 +83,8 @@ void receiveMessage(SOCKET socketFile, char* message, sockaddr *from, int *froml
 	}
 }
 
-// Struct that is destroyed upon each iteration of R being sent. Provides Round Trip Delay upon destruction.
-struct RoundTripTimer {
-
-	std::chrono::time_point<std::chrono::steady_clock> start, end;
-
-	std::chrono::duration<float> duration; 
-
-	RoundTripTimer() {
-		
-		start = std::chrono::high_resolution_clock::now();
-	}
-
-	~RoundTripTimer() {
-
-		end = std::chrono::high_resolution_clock::now();
-		// Duration in seconds
-		duration = end - start;
-
-		float ms = duration.count() * 1000.0f;
-
-		cout << "Round Trip Time: " << ms << "ms" << endl;
-	}
-};
-
 // Returns a timestamp of format hh:mm:ss:ms
+// Problem -- Milliseconds not working as expected. Could be because of low latency associated with loopback
 string getTimestamp() {
 
 	const auto now = std::chrono::system_clock::now();
@@ -78,14 +92,22 @@ string getTimestamp() {
 	const auto rawTime = std::chrono::system_clock::to_time_t(now);
 	
 	// Need this to generate milliseconds value separately
-	const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+	const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch());
 	
 	// Required for formatting time value as string
 	std::stringstream nowSs;
 	
-	nowSs << std::put_time(std::localtime(&rawTime), "%T") << ':' << std::setfill('0') << std::setw(3) << ms.count();
+	nowSs << std::put_time(std::localtime(&rawTime), "%a %b %d %Y %T") << ':' << std::setfill('0') << std::setw(3) << ms.count();
 	
 	return nowSs.str();
+}
+
+bool udpWorkFinished = false;
+
+void UDPLoop(int test) {
+	while (!udpWorkFinished) {
+		cout << test << endl;
+	}
 }
 
 int main(int argc, char* argv[]) {
@@ -165,7 +187,29 @@ int main(int argc, char* argv[]) {
 
 	// REMOVE LATER.
 	cout << "NOT PART OF PROJECT - Message from client " << clientIp << ": " << buffer << endl;
-	
+
+	// Threading is what we need
+	int test = 5;
+
+	thread worker(UDPLoop, test);
+
+	char command[24];
+
+	cin.get(command, 24);
+
+	// THREAD TEST
+	// If the command is e, handle exit stuff. TODO: make it send the required messages.
+	if (!strcmp(command, "e")) {
+
+		cout << "Exit" << command << endl;
+		udpWorkFinished = true;
+	}
+
+
+
+	// Join the main thread once the keyboard receives input
+	worker.join();
+
 
 	// THIS IS WHERE THE CODE SHOULD START.
 	while (true) {
@@ -189,7 +233,7 @@ int main(int argc, char* argv[]) {
 
 				sendMessage(socketFile, r, currentSeqNum, (sockaddr*)&client, clientLength);
 
-				// Wait for a message. 
+				// Wait for a message.
 				receiveMessage(socketFile, buffer, (sockaddr*)&client, &clientLength);
 
 				// If received message is ACK R:

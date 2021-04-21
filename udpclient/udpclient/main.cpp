@@ -6,8 +6,10 @@
 #include <string>
 #include <chrono>
 #include <iomanip>
+
 #define PORT 54000
 #define LOOPBACK "127.0.0.1"
+
 
 // To deal with deprecation warnings
 #pragma warning(disable : 4996)
@@ -42,6 +44,7 @@ void receiveMessage(SOCKET socketFile, char* message, sockaddr* from, int* froml
 }
 
 // Returns a timestamp of format hh:mm:ss:ms
+// PROBLEM WITH THE MS
 string getTimestamp() {
 
 	const auto now = std::chrono::system_clock::now();
@@ -54,7 +57,7 @@ string getTimestamp() {
 	// Required for formatting time value as string
 	std::stringstream nowSs;
 
-	nowSs << std::put_time(std::localtime(&rawTime), "%T") << ':' << std::setfill('0') << std::setw(3) << ms.count();
+	nowSs << std::put_time(std::localtime(&rawTime), "%a %b %d %Y %T") << ':' << std::setfill('0') << std::setw(3) << ms.count();
 
 	return nowSs.str();
 }
