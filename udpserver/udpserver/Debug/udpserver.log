@@ -1,4 +1,5 @@
 ﻿  main.cpp
-C:\Users\ihand\Desktop\Work\qut\enn523_a1_part1\udpserver\udpserver\main.cpp(7,13): warning C4326: return type of 'main' should be 'int' instead of 'void'
+C:\Users\ihand\Desktop\Work\qut\enn523_a1_part1\udpserver\udpserver\main.cpp(55,6): warning C4101: 'iterationStep': unreferenced local variable
+C:\Users\ihand\Desktop\Work\qut\enn523_a1_part1\udpserver\udpserver\main.cpp(52,27): warning C4101: 'timeDifference': unreferenced local variable
 main.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/INCREMENTAL:NO' specification
   udpserver.vcxproj -> C:\Users\ihand\Desktop\Work\qut\enn523_a1_part1\udpserver\Debug\udpserver.exe

@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\dependencies\constants.h" />
     <ClInclude Include="..\..\dependencies\windows.h" />
     <ClInclude Include="..\..\dependencies\winsock2.h" />
   </ItemGroup>

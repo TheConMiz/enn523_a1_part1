@@ -1,5 +1,5 @@
 /* tcpserver.c
-   This program implements a TCP client using socket programming. 
+   This program implements a TCP server using socket programming. 
    Use it as a sample program only. 
 
    programmed by Glen Tian
