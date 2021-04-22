@@ -62,7 +62,7 @@ string getTimestamp() {
 	return nowSs.str();
 }
 
-int main(int argc, char* argv[]) {
+int main() {
 
 	// Variables for memory allocation.
 	const int BUFFERLENGTH = 1024;
@@ -88,6 +88,11 @@ int main(int argc, char* argv[]) {
 	const char* e = "E";
 	const char* r = "R";
 
+	// Variable for sequence number.
+	int currentSeqNum = 0;
+
+	cout << "********** UPD CLIENT - ACTIVE **********" << endl << endl;
+
 	// Start a WinSock
 	WSADATA data;
 	// Specify version
@@ -111,18 +116,19 @@ int main(int argc, char* argv[]) {
 	// Socket object named output
 	SOCKET socketFile = socket(AF_INET, SOCK_DGRAM, 0);
 
-	// This line is here to establish the connection between client and server by sending client info to the server. NEEDS TO BE REMOVED. 
-	sendMessage(socketFile, "establish contact", (sockaddr*)&server, serverLength);
+	// PING THE SERVER TO START THE UDP COMMUNICATION PROCESS
+	sendMessage(socketFile, "PING", (sockaddr*)&server, serverLength);
 
 	while (true) {
-
-		// THIS IS WHERE THE CODE SHOULD START. THE SERVER IP INFORMATION SHOULD BE OBTAINED ONCE THE SERVER MAKES CONTACT
+		
 		receiveMessage(socketFile, buffer, (sockaddr*)&server, &serverLength);
 
 		// If receive "R", respond with "ACK R"
 		if (!strcmp(buffer, r)) {
+			
+			++currentSeqNum;
 
-			cout << buffer << " seqno " << getTimestamp() << endl;
+			cout << buffer << " " << currentSeqNum << " " << getTimestamp() << endl;
 
 			sendMessage(socketFile, ackR, (sockaddr*)&server, serverLength);
 		}
@@ -130,7 +136,7 @@ int main(int argc, char* argv[]) {
 		// If receive "ACK", respond with "ACK"
 		if (!strcmp(buffer, ack)) {
 
-			cout << buffer << " seqno " << getTimestamp() << endl;
+			cout << buffer << " " << currentSeqNum << " " << getTimestamp() << endl;
 
 			// Send an ACK
 			sendMessage(socketFile, ack, (sockaddr*)&server, serverLength);
@@ -140,7 +146,9 @@ int main(int argc, char* argv[]) {
 		// If receive E, respond with ACK E
 		if (!strcmp(buffer, e)) {
 
-			cout << buffer << " seqno " << getTimestamp() << endl;
+			++currentSeqNum;
+
+			cout << buffer << " " << currentSeqNum << " " << getTimestamp() << endl;
 			
 			sendMessage(socketFile, ackE, (sockaddr*)&server, serverLength);
 
@@ -150,7 +158,7 @@ int main(int argc, char* argv[]) {
 			// Upon receiving an ack, exit.
 			if (!strcmp(buffer, ack)) {
 
-				cout << buffer << " seqno " << " time" << endl;
+				cout << buffer << " " << currentSeqNum << " " << getTimestamp() << endl;
 				
 				exit(1);
 			}
