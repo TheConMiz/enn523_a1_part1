@@ -150,7 +150,7 @@ int main(int argc, char* argv[]) {
 			// Upon receiving an ack, exit.
 			if (!strcmp(buffer, ack)) {
 
-				cout << buffer << "seqno" << " time" << endl;
+				cout << buffer << " seqno " << " time" << endl;
 				
 				exit(1);
 			}

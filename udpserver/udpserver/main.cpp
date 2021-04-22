@@ -45,6 +45,7 @@ bool sendError = false;
 
 // Thread Completion
 bool udpWorkFinished = false;
+bool exitRequest = false;
 
 
 // Struct that is destroyed upon each iteration of R being sent. Provides Round Trip Delay upon destruction.
@@ -134,6 +135,28 @@ void UDPLoop(time_t oldTime, time_t newTime, int currentSeqNum, SOCKET socketFil
 	while (!udpWorkFinished) {
 
 		newTime = time(NULL);
+
+		// Find a way to acknowledge E
+		if (exitRequest) {
+
+
+			// Send an E to the client
+			sendMessage(socketFile, e, currentSeqNum, (sockaddr*)&client, clientLength);
+
+			// Wait for a message.
+			receiveMessage(socketFile, buffer, (sockaddr*)&client, &clientLength);
+
+			if (!strcmp(buffer, ackE)) {
+
+				cout << buffer << " seqno " << getTimestamp() << endl;
+
+				sendMessage(socketFile, ack, currentSeqNum, (sockaddr*)&client, clientLength);
+
+				exit(1);
+			}
+
+		}
+
 
 		if (newTime - oldTime == 3) {
 
@@ -243,6 +266,7 @@ int main(int argc, char* argv[]) {
 
 		// Variable for storing exit command
 		char command[24];
+
 		cin.get(command, 24);
 
 		// If the command is e, handle Server exit.
@@ -250,18 +274,7 @@ int main(int argc, char* argv[]) {
 
 			//udpWorkFinished = true;
 
-			// Send an E to the client
-			sendMessage(socketFile, e, currentSeqNum, (sockaddr*)&client, clientLength);
-
-			// Wait for a message.
-			receiveMessage(socketFile, buffer, (sockaddr*)&client, &clientLength);
-
-			if (!strcmp(buffer, ackE)) {
-
-				sendMessage(socketFile, ack, currentSeqNum, (sockaddr*)&client, clientLength);
-
-				exit(1);
-			}
+			exitRequest = true;
 
 		}
 
