@@ -110,7 +110,7 @@ int main() {
 	server.sin_family = AF_INET;
 	// Socket port
 	server.sin_port = htons(PORT);
-	// Socket IP address
+	// Socket IP address -- GOTTA BE SOMETHING DIFFERENT
 	inet_pton(AF_INET, LOOPBACK, &server.sin_addr);
 
 	// Socket object named output
@@ -136,7 +136,7 @@ int main() {
 		// If receive "ACK", respond with "ACK"
 		if (!strcmp(buffer, ack)) {
 
-			cout << buffer << " " << currentSeqNum << " " << getTimestamp() << endl;
+			cout << buffer << " " << currentSeqNum << " " << getTimestamp() << endl << endl;
 
 			// Send an ACK
 			sendMessage(socketFile, ack, (sockaddr*)&server, serverLength);

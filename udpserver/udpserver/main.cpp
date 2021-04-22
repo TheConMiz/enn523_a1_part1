@@ -118,9 +118,10 @@ string getTimestamp() {
 	const auto now = std::chrono::system_clock::now();
 
 	const auto rawTime = std::chrono::system_clock::to_time_t(now);
-	
+
 	// Need this to generate milliseconds value separately
-	const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+	const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch());
+
 	
 	// Required for formatting time value as string
 	std::stringstream nowSs;
@@ -143,12 +144,18 @@ void UDPLoop(time_t oldTime, time_t newTime, int currentSeqNum, SOCKET socketFil
 			// Send an E to the client
 			sendMessage(socketFile, e, currentSeqNum, (sockaddr*)&client, clientLength);
 
+			// Allocate space for buffer.
+			ZeroMemory(buffer, BUFFERLENGTH);
+
 			// Wait for a message.
 			receiveMessage(socketFile, buffer, (sockaddr*)&client, &clientLength);
 
 			if (!strcmp(buffer, ackE)) {
 
 				cout << buffer << " " << currentSeqNum << " " << getTimestamp() << endl;
+
+				// Allocate space for buffer.
+				ZeroMemory(buffer, BUFFERLENGTH);
 
 				sendMessage(socketFile, ack, currentSeqNum, (sockaddr*)&client, clientLength);
 
@@ -178,6 +185,9 @@ void UDPLoop(time_t oldTime, time_t newTime, int currentSeqNum, SOCKET socketFil
 				// Send ACK.
 				sendMessage(socketFile, ack, currentSeqNum, (sockaddr*)&client, clientLength);
 
+				// Allocate space for buffer.
+				ZeroMemory(buffer, BUFFERLENGTH);
+
 				// Wait for a response. 
 				receiveMessage(socketFile, buffer, (sockaddr*)&client, &clientLength);
 			}
@@ -186,6 +196,9 @@ void UDPLoop(time_t oldTime, time_t newTime, int currentSeqNum, SOCKET socketFil
 			if (!strcmp(buffer, ack)) {
 
 				cout << buffer << " " <<  currentSeqNum << " " << getTimestamp() << endl;
+
+				// Allocate space for buffer.
+				ZeroMemory(buffer, BUFFERLENGTH);
 
 				cout << endl;
 			}
@@ -265,20 +278,22 @@ int main(int argc, char* argv[]) {
 	// Port is converted to big endian. 
 	local.sin_port = htons(localPort);
 
+
 	// Bind to the local UDP server. On fail, error and exit.
 	if (bind(socketFile, (sockaddr*)&local, sizeof(local)) == SOCKET_ERROR){
 		cout << "Cannot bind socket. " << WSAGetLastError() << endl;
 		exit(1);
 	}
 
+
 	// SERVER WILL REMAIN IDLE UNTIL IT RECEIVES SOMETHING FROM THE CLIENT.
 	// Allocate space for buffer.
 	ZeroMemory(buffer, BUFFERLENGTH);
 
+
+
 	// Wait for a message from the client.
 	receiveMessage(socketFile, buffer, (sockaddr*)&client, &clientLength);
-
-	sendMessage(socketFile, ack, currentSeqNum, (sockaddr*)&client, clientLength);
 
 
 	// ONCE THE CLIENT HAS MADE CONTACT, BEGIN THE COMMUNICATION PROCESS.
