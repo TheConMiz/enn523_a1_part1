@@ -12,22 +12,25 @@ bool exitRequest = false;
 // Struct that is destroyed upon each iteration of R being sent. Provides Round Trip Delay upon destruction.
 struct RoundTripTimer {
 
+	// Initialise variables for storing the start, end, and duration of the timer. 
 	std::chrono::time_point<std::chrono::steady_clock> start, end;
-
 	std::chrono::duration<float> duration;
 
+	// Constructor
 	RoundTripTimer() {
-
+		// ! : High Resolution Clock offers a more accurate time value
 		start = std::chrono::high_resolution_clock::now();
 	}
 
+	// Destructor
 	~RoundTripTimer() {
 
 		end = std::chrono::high_resolution_clock::now();
-		// Duration in seconds
+		
+		// Calculate duration in seconds
 		duration = end - start;
 
-		// Duration in ms.
+		// Change duration to milliseconds.
 		float ms = duration.count() * 1000.0f;
 
 		if (!sendError) {
@@ -87,18 +90,18 @@ void UDPLoop(time_t oldTime, time_t newTime, int currentSeqNum, SOCKET socketFil
 			}
 		}
 
-
+		// Enforces the 3-second timer
 		if (newTime - oldTime == 3) {
 
 			++currentSeqNum;
 
-			// Provides round trip delay.
+			// Instantiate the round trip delay.
 			RoundTripTimer roundTripTimer;
 
 			// Send an R to the client
 			sendMessage(socketFile, r, currentSeqNum, (sockaddr*)&client, clientLength);
 
-			// Wait for a message. PROBLEM - IF THE CLIENT DOES NOT COME ONLINE ON time, it stalls.
+			// Wait for a message. 
 			receiveMessage(socketFile, buffer, (sockaddr*)&client, &clientLength);
 
 			// If received message is ACK R:

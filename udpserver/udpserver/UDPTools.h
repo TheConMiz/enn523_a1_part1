@@ -57,6 +57,7 @@ string getTimestamp() {
 	// Required for formatting time value as string
 	std::stringstream nowSs;
 
+	// Format the raw time value into a timestamp string of format hh:mm:ss:ms
 	nowSs << std::put_time(std::localtime(&rawTime), "%a %b %d %Y %T") << ':' << std::setfill('0') << std::setw(3) << ms.count();
 
 	return nowSs.str();
