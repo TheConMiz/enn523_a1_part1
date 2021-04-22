@@ -1,24 +1,5 @@
 // UDP CLIENT
-#include <iostream>
-#include <WS2tcpip.h>
-#include <WinSock2.h>
-#include <Windows.h>
-#include <string>
-#include <chrono>
-#include <iomanip>
-
-#define PORT 54000
-#define LOOPBACK "127.0.0.1"
-
-
-// To deal with deprecation warnings
-#pragma warning(disable : 4996)
-
-using namespace std;
-
-// Global variables for memory allocation.
-const int BUFFERLENGTH = 1024;
-const int IP_LENGTH = 256;
+#include "UDPTools.h"
 
 // Combines the sending of message to the server and error-checking
 void sendMessage(SOCKET socketFile, const char* message, const sockaddr* to, int tolen) {
@@ -31,38 +12,31 @@ void sendMessage(SOCKET socketFile, const char* message, const sockaddr* to, int
 	}
 }
 
-// Combines the receipt of message from the server and error-checking
-void receiveMessage(SOCKET socketFile, char* message, sockaddr* from, int* fromlen) {
 
-	int messageIn = recvfrom(socketFile, message, BUFFERLENGTH, 0, from, fromlen);
+int main(int argc, char* argv[]) {
 
-	// If no message received, error.
-	if (messageIn == SOCKET_ERROR) {
-		cout << "Unable to receive from server. " << WSAGetLastError() << endl;
+	// Variables for collecting configuration information from the command line
+	const char* localIP;
+	const char* serverIP;
+	int localPort;
+	int serverPort;
+
+	// IF COMMAND LINE ARGUMENTS ARE PROVIDED, USE THEM
+	if (argc >= 5) {
+
+		localIP = argv[1];
+		serverIP = argv[2];
+		localPort = atoi(argv[3]);
+		serverPort = atoi(argv[4]);
 	}
 
-}
-
-// Returns a timestamp of format hh:mm:ss:ms
-// PROBLEM WITH THE MS
-string getTimestamp() {
-
-	const auto now = std::chrono::system_clock::now();
-
-	const auto rawTime = std::chrono::system_clock::to_time_t(now);
-
-	// Need this to generate milliseconds value separately
-	const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
-
-	// Required for formatting time value as string
-	std::stringstream nowSs;
-
-	nowSs << std::put_time(std::localtime(&rawTime), "%a %b %d %Y %T") << ':' << std::setfill('0') << std::setw(3) << ms.count();
-
-	return nowSs.str();
-}
-
-int main() {
+	// IF NOT, RESORT TO DEFAULT LOOPBACK ADDRESS AND PORT
+	else {
+		localIP = LOOPBACK;
+		serverIP = LOOPBACK;
+		localPort = PORT;
+		serverPort = PORT;
+	}
 
 	// Variables for memory allocation.
 	const int BUFFERLENGTH = 1024;
@@ -77,6 +51,8 @@ int main() {
 
 	// Buffer variable for incoming messages.
 	char buffer[BUFFERLENGTH];
+	// Allocate space for buffer.
+	ZeroMemory(buffer, BUFFERLENGTH);
 
 	// Variables for calculating round trip delay, and maintaining time
 	double time_old, time_new, time_interval;
@@ -109,9 +85,9 @@ int main() {
 	// Socket family
 	server.sin_family = AF_INET;
 	// Socket port
-	server.sin_port = htons(PORT);
+	server.sin_port = htons(serverPort);
 	// Socket IP address -- GOTTA BE SOMETHING DIFFERENT
-	inet_pton(AF_INET, LOOPBACK, &server.sin_addr);
+	inet_pton(AF_INET, serverIP, &server.sin_addr);
 
 	// Socket object named output
 	SOCKET socketFile = socket(AF_INET, SOCK_DGRAM, 0);
@@ -120,12 +96,12 @@ int main() {
 	sendMessage(socketFile, "PING", (sockaddr*)&server, serverLength);
 
 	while (true) {
-		
+
 		receiveMessage(socketFile, buffer, (sockaddr*)&server, &serverLength);
 
 		// If receive "R", respond with "ACK R"
 		if (!strcmp(buffer, r)) {
-			
+
 			++currentSeqNum;
 
 			cout << buffer << " " << currentSeqNum << " " << getTimestamp() << endl;
@@ -149,7 +125,7 @@ int main() {
 			++currentSeqNum;
 
 			cout << buffer << " " << currentSeqNum << " " << getTimestamp() << endl;
-			
+
 			sendMessage(socketFile, ackE, (sockaddr*)&server, serverLength);
 
 			// Wait for an Ack
@@ -159,14 +135,12 @@ int main() {
 			if (!strcmp(buffer, ack)) {
 
 				cout << buffer << " " << currentSeqNum << " " << getTimestamp() << endl;
-				
+
 				exit(1);
 			}
 		}
 
 	}
-
-
 
 	// Close the socket
 	closesocket(socketFile);
