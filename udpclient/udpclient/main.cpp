@@ -112,7 +112,7 @@ int main(int argc, char* argv[]) {
 	SOCKET socketFile = socket(AF_INET, SOCK_DGRAM, 0);
 
 	// This line is here to establish the connection between client and server by sending client info to the server. NEEDS TO BE REMOVED. 
-	sendMessage(socketFile, "test", (sockaddr*)&server, serverLength);
+	sendMessage(socketFile, "establish contact", (sockaddr*)&server, serverLength);
 
 	while (true) {
 

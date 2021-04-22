@@ -27,9 +27,25 @@
 
 using namespace std;
 
-// Global variables for memory allocation.
+// Global variables
+
+// Memory Allocation.
 const int BUFFERLENGTH = 1024;
 const int IP_LENGTH = 256;
+
+// UDP Messages
+const char* ack = "ACK";
+const char* ackE = "ACK E";
+const char* ackR = "ACK R";
+const char* e = "E";
+const char* r = "R";
+
+// Send Error
+bool sendError = false;
+
+// Thread Completion
+bool udpWorkFinished = false;
+
 
 // Struct that is destroyed upon each iteration of R being sent. Provides Round Trip Delay upon destruction.
 struct RoundTripTimer {
@@ -52,7 +68,11 @@ struct RoundTripTimer {
 		// Duration in ms.
 		float ms = duration.count() * 1000.0f;
 
-		cout << "Round Trip Time: " << ms << "ms" << endl << endl;
+		if (sendError != 1) {
+
+			cout << "Round Trip Time: " << ms << "ms" << endl << endl;
+		
+		}
 	}
 };
 
@@ -60,12 +80,18 @@ struct RoundTripTimer {
 void sendMessage(SOCKET socketFile, const char* message, int sequenceNum, const sockaddr *to, int tolen) {
 
 	// Do something here to send both message and sequence number
-
 	int sendStatus = sendto(socketFile, message, BUFFERLENGTH, 0, to, tolen);
 
 	// If unable to send, print error message.
 	if (sendStatus == SOCKET_ERROR) {
-		cout << "Unable to send message. Error: " << WSAGetLastError() << endl;
+
+		sendError = true;
+
+		cout << "Unable to send message with sequence number " << sequenceNum << ". Error: " << WSAGetLastError() << endl << endl;
+	}
+
+	else {
+		sendError = false;
 	}
 
 }
@@ -82,6 +108,8 @@ void receiveMessage(SOCKET socketFile, char* message, sockaddr *from, int *froml
 		cout << "Unable to receive from server. " << WSAGetLastError() << endl;
 	}
 }
+
+
 
 // Returns a timestamp of format hh:mm:ss:ms
 // Problem -- Milliseconds not working as expected. Could be because of low latency associated with loopback
@@ -102,11 +130,46 @@ string getTimestamp() {
 	return nowSs.str();
 }
 
-bool udpWorkFinished = false;
-
-void UDPLoop(int test) {
+void UDPLoop(time_t oldTime, time_t newTime, int currentSeqNum, SOCKET socketFile, sockaddr_in client, int clientLength, char* buffer) {
 	while (!udpWorkFinished) {
-		cout << test << endl;
+
+		newTime = time(NULL);
+
+		if (newTime - oldTime == 3) {
+
+			++currentSeqNum;
+
+			// Provides round trip delay.
+			RoundTripTimer roundTripTimer;
+
+			// Send an R to the client
+			sendMessage(socketFile, r, currentSeqNum, (sockaddr*)&client, clientLength);
+
+			// Wait for a message.
+			receiveMessage(socketFile, buffer, (sockaddr*)&client, &clientLength);
+
+			// If received message is ACK R:
+			if (!strcmp(buffer, ackR)) {
+
+				cout << buffer << " seqno " << getTimestamp() << endl;
+
+				// Send ACK.
+				sendMessage(socketFile, ack, currentSeqNum, (sockaddr*)&client, clientLength);
+
+				// Wait for a response. 
+				receiveMessage(socketFile, buffer, (sockaddr*)&client, &clientLength);
+			}
+
+			// If received message is ACK: 
+			if (!strcmp(buffer, ack)) {
+
+				cout << buffer << " seqno " << getTimestamp() << endl;
+
+				cout << endl;
+			}
+
+			oldTime = newTime;
+		}
 	}
 }
 
@@ -121,14 +184,6 @@ int main(int argc, char* argv[]) {
 	char buffer[BUFFERLENGTH];
 
 	time_t oldTime, newTime;
-
-
-	// Commands
-	const char* ack = "ACK";
-	const char* ackE = "ACK E";
-	const char* ackR = "ACK R";
-	const char* e = "E";
-	const char* r = "R";
 
 	// Variable for sequence number
 	int currentSeqNum = 0;
@@ -170,48 +225,6 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
-	oldTime = time(NULL);
-
-	// ROUND 1 -  RECEIVE A MESSAGE FROM THE CLIENT TO ASCERTAIN ITS CREDENTIALS. REMOVE THIS LATER.
-	// Allocate space for buffer.
-	ZeroMemory(buffer, BUFFERLENGTH);
-
-	// Wait for a message. Sending a sequence number of -1 here. ignore it.
-	receiveMessage(socketFile, buffer, (sockaddr*)&client, &clientLength);
-
-	// Allocate space for client's IP information.
-	char clientIp[IP_LENGTH];
-	ZeroMemory(clientIp, IP_LENGTH);
-	// Store IP information in clientIp variable
-	inet_ntop(AF_INET, &client.sin_addr, clientIp, IP_LENGTH);
-
-	// REMOVE LATER.
-	cout << "NOT PART OF PROJECT - Message from client " << clientIp << ": " << buffer << endl;
-
-	// Threading is what we need
-	int test = 5;
-
-	thread worker(UDPLoop, test);
-
-	char command[24];
-
-	cin.get(command, 24);
-
-	// THREAD TEST
-	// If the command is e, handle exit stuff. TODO: make it send the required messages.
-	if (!strcmp(command, "e")) {
-
-		cout << "Exit" << command << endl;
-		udpWorkFinished = true;
-	}
-
-
-
-	// Join the main thread once the keyboard receives input
-	worker.join();
-
-
-	// THIS IS WHERE THE CODE SHOULD START.
 	while (true) {
 
 		// Allocate space for buffer.
@@ -220,48 +233,41 @@ int main(int argc, char* argv[]) {
 		// Note the old time.
 		oldTime = time(NULL);
 
-		while (true) {
+		// Initialise the new time. This will be modified later.
+		newTime = time(NULL);
 
-			newTime = time(NULL);
 
-			if (newTime - oldTime == 3) {
+		// Threading is what we need
+		// Call the function that handles the UDP loop.
+		thread worker(UDPLoop, oldTime, newTime, currentSeqNum, socketFile, client, clientLength, buffer);
 
-				// Provides round trip delay.
-				RoundTripTimer roundTripTimer;
+		// Variable for storing exit command
+		char command[24];
+		cin.get(command, 24);
 
-				++currentSeqNum;
+		// If the command is e, handle Server exit.
+		if (!strcmp(command, "e")) {
 
-				sendMessage(socketFile, r, currentSeqNum, (sockaddr*)&client, clientLength);
+			//udpWorkFinished = true;
 
-				// Wait for a message.
-				receiveMessage(socketFile, buffer, (sockaddr*)&client, &clientLength);
+			// Send an E to the client
+			sendMessage(socketFile, e, currentSeqNum, (sockaddr*)&client, clientLength);
 
-				// If received message is ACK R:
-				if (!strcmp(buffer, ackR)) {
-					
-					cout << buffer << " seqno " << getTimestamp() << endl;
+			// Wait for a message.
+			receiveMessage(socketFile, buffer, (sockaddr*)&client, &clientLength);
 
-					// Send ACK.
-					sendMessage(socketFile, ack, currentSeqNum, (sockaddr*)&client, clientLength);
+			if (!strcmp(buffer, ackE)) {
 
-					// Wait for a response. 
-					receiveMessage(socketFile, buffer, (sockaddr*)&client, &clientLength);
-				}
+				sendMessage(socketFile, ack, currentSeqNum, (sockaddr*)&client, clientLength);
 
-				// If received message is ACK: 
-				if (!strcmp(buffer, ack)) {
-					
-					// Get Current Time
-					auto now = std::chrono::system_clock::now();
-
-					cout << buffer << " seqno " << getTimestamp() << endl;
-
-					cout << endl;
-				}
-
-				oldTime = newTime;
+				exit(1);
 			}
+
 		}
+
+		// Join the main thread once the keyboard receives input
+		worker.join();
+
 	}
 
 	// Close WinSock
