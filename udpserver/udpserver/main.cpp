@@ -198,6 +198,29 @@ void UDPLoop(time_t oldTime, time_t newTime, int currentSeqNum, SOCKET socketFil
 
 int main(int argc, char* argv[]) {
 
+	// Variables for collecting configuration information from the command line
+	const char* localIP;
+	const char* clientIP;
+	int localPort;
+	int clientPort;
+
+	// IF COMMAND LINE ARGUMENTS ARE PROVIDED, USE THEM
+	if (argc >=5 ){
+
+		localIP = argv[1];
+		clientIP = argv[2];
+		localPort = atoi(argv[3]);
+		clientPort = atoi(argv[4]);
+	}
+
+	// IF NOT, RESORT TO DEFAULT LOOPBACK ADDRESS AND PORT
+	else {
+		localIP = LOOPBACK;
+		clientIP = LOOPBACK;
+		localPort = PORT;
+		clientPort = PORT;
+	}
+
 	// Socket address variables for local and client.
 	sockaddr_in local, client;
 	int clientLength = sizeof(client);
@@ -237,10 +260,10 @@ int main(int argc, char* argv[]) {
 	}
 
 	// Establish local UDP server parameters
-	local.sin_addr.S_un.S_addr = ADDR_ANY;
+	local.sin_addr.S_un.S_addr = inet_addr(localIP);
 	local.sin_family = AF_INET;
-	// Port 54000 is converted to big endian. 
-	local.sin_port = htons(PORT);
+	// Port is converted to big endian. 
+	local.sin_port = htons(localPort);
 
 	// Bind to the local UDP server. On fail, error and exit.
 	if (bind(socketFile, (sockaddr*)&local, sizeof(local)) == SOCKET_ERROR){
@@ -254,6 +277,9 @@ int main(int argc, char* argv[]) {
 
 	// Wait for a message from the client.
 	receiveMessage(socketFile, buffer, (sockaddr*)&client, &clientLength);
+
+	sendMessage(socketFile, ack, currentSeqNum, (sockaddr*)&client, clientLength);
+
 
 	// ONCE THE CLIENT HAS MADE CONTACT, BEGIN THE COMMUNICATION PROCESS.
 	while (true) {
