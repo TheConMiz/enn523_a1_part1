@@ -1,10 +1,8 @@
 # ENN523 - Advanced Network Engineering
 
-## Assignment 1 - Part 1
-click here for [Part 2](#)
-
 ## Description
-UDP-based chat program, written using C/C++.
+A UDP-based client-server communication program, written using C++.
+
 ### Contributors
 
 1. Bindiya
