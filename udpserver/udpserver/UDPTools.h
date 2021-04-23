@@ -51,7 +51,7 @@ string getTimestamp() {
 	const auto rawTime = std::chrono::system_clock::to_time_t(now);
 
 	// Need this to generate milliseconds value separately
-	const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch());
+	const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
 
 
 	// Required for formatting time value as string
