@@ -1,6 +1,0 @@
-﻿  main.cpp
-C:\Users\ihand\Desktop\Work\qut\enn523_a1_part1\udpclient\udpclient\main.cpp(55,19): warning C4101: 'time_new': unreferenced local variable
-C:\Users\ihand\Desktop\Work\qut\enn523_a1_part1\udpclient\udpclient\main.cpp(55,9): warning C4101: 'time_old': unreferenced local variable
-C:\Users\ihand\Desktop\Work\qut\enn523_a1_part1\udpclient\udpclient\main.cpp(55,29): warning C4101: 'time_interval': unreferenced local variable
-main.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/INCREMENTAL:NO' specification
-  udpclient.vcxproj -> C:\Users\ihand\Desktop\Work\qut\enn523_a1_part1\udpclient\Debug\udpclient.exe

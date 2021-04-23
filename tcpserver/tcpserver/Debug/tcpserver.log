@@ -1,2 +1,0 @@
-﻿tcpserver.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/INCREMENTAL:NO' specification
-  tcpserver.vcxproj -> C:\Users\ihand\Desktop\Work\qut\enn523_a1_part1\tcpserver\Debug\tcpserver.exe
