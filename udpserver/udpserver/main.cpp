@@ -8,6 +8,9 @@ bool sendError = false;
 // Thread Completion
 bool exitRequest = false;
 
+// Variable for storing the sum of all round trip delay values. To be used to derive the average. 
+float roundTripSum = 0.00f;
+
 
 // Struct that is destroyed upon each iteration of R being sent. Provides Round Trip Delay upon destruction.
 struct RoundTripTimer {
@@ -35,6 +38,9 @@ struct RoundTripTimer {
 
 		if (!sendError) {
 			cout << "Round Trip Time: " << ms << "ms" << endl << endl;
+			
+			// Increment the round trip sum value
+			roundTripSum += ms;
 		}
 	}
 };
@@ -85,6 +91,8 @@ void UDPLoop(time_t oldTime, time_t newTime, int currentSeqNum, SOCKET socketFil
 				ZeroMemory(buffer, BUFFERLENGTH);
 
 				sendMessage(socketFile, ack, currentSeqNum, (sockaddr*)&client, clientLength);
+
+				cout << "\nNumber of Round Trips: " << currentSeqNum - 1 <<  "\nAverage Round Trip Time: " << roundTripSum / (currentSeqNum - 1) << "ms \n";
 
 				exit(1);
 			}
