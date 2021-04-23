@@ -4,7 +4,7 @@
 A UDP-based client-server communication program, written using C++.
 
 ### Contributors
+1. [Vishal Venkatraman](https://github.com/TheConMiz/)
+2. Bindiya
+3. Pallavi
 
-1. Bindiya
-2. Pallavi
-3. [Vishal Venkatraman](https://github.com/TheConMiz/)
