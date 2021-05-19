@@ -1,5 +1,4 @@
-# ENN523 - Advanced Network Engineering
+# Timed UDP Messaging
 
 ## Description
-A UDP-based client-server communication program, written using C++.
-
+A UDP-based client-server communication program meant to calculate the **Round-Trip Time** (RTT) of a series of messages.
